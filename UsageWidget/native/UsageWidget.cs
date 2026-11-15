@@ -81,8 +81,7 @@ namespace UsageWidget
         Usage latestUsage;
         Task refreshTask = Task.FromResult(0);
         bool readingResetDetails;
-        bool busy, closing, compact, compactPressing;
-        Point compactPressScreen;
+        bool busy, closing, compact;
         DateTime? updated;
         Point moveAnchorScreen;
         bool moving, applying;
@@ -121,15 +120,14 @@ namespace UsageWidget
             content.PreviewMouseLeftButtonDown += delegate(object sender, MouseButtonEventArgs e) {
                 if (e.ChangedButton != MouseButton.Left) return;
                 if (InsideButton(e.OriginalSource as DependencyObject)) return; // Buttons keep their clicks; resize edges never reach here.
-                moveAnchorScreen = PointToScreen(e.GetPosition(this));
-                compactPressing = false;
-                if (compact)
+                if (e.ClickCount == 2)
                 {
-                    compactPressScreen = moveAnchorScreen;
-                    compactPressing = true;
+                    SetCompact(!compact);
+                    e.Handled = true;
+                    return;
                 }
+                moveAnchorScreen = PointToScreen(e.GetPosition(this));
                 moving = content.CaptureMouse();
-                if (!moving) compactPressing = false;
             };
             content.PreviewMouseMove += delegate(object sender, MouseEventArgs e) {
                 if (!moving || e.LeftButton != MouseButtonState.Pressed) return;
@@ -142,18 +140,10 @@ namespace UsageWidget
                 moveAnchorScreen = now;
             };
             content.PreviewMouseLeftButtonUp += delegate(object sender, MouseButtonEventArgs e) {
-                bool expand = false;
-                if (compactPressing)
-                {
-                    Point release = PointToScreen(e.GetPosition(this));
-                    double dx = release.X - compactPressScreen.X, dy = release.Y - compactPressScreen.Y;
-                    expand = dx * dx + dy * dy < 64;
-                }
-                moving = false; compactPressing = false;
+                moving = false;
                 content.ReleaseMouseCapture();
-                if (expand) SetCompact(false);
             };
-            content.LostMouseCapture += delegate { moving = false; compactPressing = false; };
+            content.LostMouseCapture += delegate { moving = false; };
             primary = Element<TextBlock>("PrimaryValue"); weekly = Element<TextBlock>("WeeklyValue");
             primaryReset = Element<TextBlock>("PrimaryReset"); weeklyReset = Element<TextBlock>("WeeklyReset");
             primaryBar = Element<ProgressBar>("PrimaryBar"); weeklyBar = Element<ProgressBar>("WeeklyBar");
@@ -205,6 +195,7 @@ namespace UsageWidget
                 handle = new WindowInteropHelper(this).Handle;
                 HwndSource.FromHwnd(handle).AddHook(WindowMessage);
                 StripBorder();
+                Native.HideFromSwitcher(handle);
                 Native.ConfigureFrame(handle);
             };
         }
@@ -220,6 +211,7 @@ namespace UsageWidget
             Show();
             if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
             Activate();
+            Native.HideFromSwitcher(handle);
         }
 
         void HideWidget()
@@ -257,12 +249,16 @@ namespace UsageWidget
                     Width = 520, Height = 520, MinWidth = 340, MinHeight = 320,
                     WindowStartupLocation = WindowStartupLocation.CenterScreen, Content = layout
                 };
+                usageWindow.SourceInitialized += delegate {
+                    Native.HideFromSwitcher(new WindowInteropHelper(usageWindow).Handle);
+                };
                 usageWindow.Closed += delegate {
                     usageWindow = null; usageDetails = null; resetSelection = null; redeem = null; redeemStatus = null;
                 };
             }
             usageDetails.Text = "Checking usage and reset availability…";
             usageWindow.Show(); usageWindow.Activate();
+            Native.HideFromSwitcher(new WindowInteropHelper(usageWindow).Handle);
             await Refresh(true);
         }
 
@@ -402,7 +398,7 @@ namespace UsageWidget
                 compactSize = new Size(Small * scale, Small * scale);
             }
             compact = on;
-            moving = false; compactPressing = false;
+            moving = false;
             content.ReleaseMouseCapture();
             fullView.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
             compactView.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
@@ -410,10 +406,24 @@ namespace UsageWidget
             SetLimits();
             Size size = on ? compactSize.Value : fullSize;
             var sized = new Frame { W = (int)Math.Round(size.Width * dpi), H = (int)Math.Round(size.Height * dpi) };
-            // Keep the current center; moving either mode moves the next mode too.
-            sized.X = from.X + (from.W - sized.W) / 2;
-            sized.Y = from.Y + (from.H - sized.H) / 2;
-            Place(sized);
+            Place(AnchorFrame(from, sized));
+        }
+
+        Frame AnchorFrame(Frame from, Frame target)
+        {
+            var area = System.Windows.Forms.Screen.FromRectangle(new System.Drawing.Rectangle(
+                from.X, from.Y, Math.Max(1, from.W), Math.Max(1, from.H))).WorkingArea;
+            int midX = area.Left + area.Width / 2;
+            int midY = area.Top + area.Height / 2;
+            int centerX = from.X + from.W / 2;
+            int centerY = from.Y + from.H / 2;
+            if (centerX > midX) target.X = from.X + from.W - target.W;
+            else if (centerX < midX) target.X = from.X;
+            else target.X = from.X + (from.W - target.W) / 2;
+            if (centerY > midY) target.Y = from.Y + from.H - target.H;
+            else if (centerY < midY) target.Y = from.Y;
+            else target.Y = from.Y + (from.H - target.H) / 2;
+            return target;
         }
 
         void LockAspect(ref Native.RECT rect, int edge)
@@ -460,6 +470,7 @@ namespace UsageWidget
 
         IntPtr WindowMessage(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
+            if (message == 0x0018 || message == 0x007D) Native.HideFromSwitcher(hwnd);
             if (message == Native.ShowWidgetMessage)
             {
                 Dispatcher.BeginInvoke(new Action(ShowWidget));
@@ -848,6 +859,15 @@ namespace UsageWidget
         public static void SetStyle(IntPtr window, int style)
         {
             SetWindowLong(window, -16, style);
+            SetWindowPos(window, IntPtr.Zero, 0, 0, 0, 0, 0x37);
+        }
+        public static void HideFromSwitcher(IntPtr window)
+        {
+            if (window == IntPtr.Zero) return;
+            int style = GetWindowLong(window, -20);
+            int next = (style | 0x80) & ~0x40000;
+            if (next == style) return;
+            SetWindowLong(window, -20, next);
             SetWindowPos(window, IntPtr.Zero, 0, 0, 0, 0, 0x37);
         }
         [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }

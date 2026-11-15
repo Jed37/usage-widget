@@ -115,7 +115,7 @@
     </Button>
   </Grid>
   </Grid>
-  <Grid x:Name="CompactView" Visibility="Collapsed" Margin="7" ToolTip="Click to expand">
+  <Grid x:Name="CompactView" Visibility="Collapsed" Margin="7" ToolTip="Double-click to expand">
     <StackPanel VerticalAlignment="Center">
       <TextBlock x:Name="CompactValue" Text="Build --" FontSize="12" FontWeight="SemiBold" Foreground="#F5F7FC" TextAlignment="Center"/>
       <TextBlock x:Name="CompactBot" Text="Bot --" FontSize="12" FontWeight="SemiBold" Foreground="#F5F7FC" TextAlignment="Center" Margin="0,1,0,0"/>

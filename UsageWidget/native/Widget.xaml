@@ -113,7 +113,7 @@
     </Button>
   </Grid>
   </Grid>
-  <Grid x:Name="CompactView" Visibility="Collapsed" Margin="7" ToolTip="Click to expand">
+  <Grid x:Name="CompactView" Visibility="Collapsed" Margin="7" ToolTip="Double-click to expand">
     <StackPanel VerticalAlignment="Center">
       <Viewbox Height="36" Stretch="Uniform" StretchDirection="DownOnly">
         <TextBlock x:Name="CompactValue" Text="--" FontSize="26" FontWeight="SemiBold" Foreground="#F5F7FC" TextAlignment="Center"/>

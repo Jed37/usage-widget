@@ -76,8 +76,6 @@ namespace GrokUsageWidget
         private bool busy;
         private bool closing;
         private bool compact;
-        private bool compactPressing;
-        private System.Windows.Point compactPressScreen;
         private DateTime? updated;
         private System.Windows.Point moveAnchorScreen;
         private bool moving;
@@ -151,18 +149,14 @@ namespace GrokUsageWidget
             {
                 if (e.ChangedButton == MouseButton.Left && !InsideButton(e.OriginalSource as DependencyObject))
                 {
+                    if (e.ClickCount == 2)
+                    {
+                        SetCompact(!compact);
+                        e.Handled = true;
+                        return;
+                    }
                     moveAnchorScreen = PointToScreen(e.GetPosition(this));
-                    compactPressing = false;
-                    if (compact)
-                    {
-                        compactPressScreen = moveAnchorScreen;
-                        compactPressing = true;
-                    }
                     moving = content.CaptureMouse();
-                    if (!moving)
-                    {
-                        compactPressing = false;
-                    }
                 }
             };
             content.PreviewMouseMove += delegate(object sender, System.Windows.Input.MouseEventArgs e)
@@ -178,28 +172,14 @@ namespace GrokUsageWidget
                     moveAnchorScreen = point;
                 }
             };
-            content.PreviewMouseLeftButtonUp += delegate(object sender, MouseButtonEventArgs e)
+            content.PreviewMouseLeftButtonUp += delegate
             {
-                bool expand = false;
-                if (compactPressing)
-                {
-                    System.Windows.Point point = PointToScreen(e.GetPosition(this));
-                    double dx = point.X - compactPressScreen.X;
-                    double dy = point.Y - compactPressScreen.Y;
-                    expand = dx * dx + dy * dy < 64.0;
-                }
                 moving = false;
-                compactPressing = false;
                 content.ReleaseMouseCapture();
-                if (expand)
-                {
-                    SetCompact(false);
-                }
             };
             content.LostMouseCapture += delegate
             {
                 moving = false;
-                compactPressing = false;
             };
 
             primary = Element<TextBlock>("PrimaryValue");
@@ -309,6 +289,7 @@ namespace GrokUsageWidget
                 handle = new WindowInteropHelper(this).Handle;
                 HwndSource.FromHwnd(handle).AddHook(WindowMessage);
                 StripBorder();
+                Native.HideFromSwitcher(handle);
                 Native.ConfigureFrame(handle);
             };
         }
@@ -369,6 +350,7 @@ namespace GrokUsageWidget
                 WindowState = WindowState.Normal;
             }
             Activate();
+            Native.HideFromSwitcher(handle);
         }
 
         private void HideWidget()
@@ -424,6 +406,10 @@ namespace GrokUsageWidget
                     WindowStartupLocation = WindowStartupLocation.CenterScreen,
                     Content = grid
                 };
+                usageWindow.SourceInitialized += delegate
+                {
+                    Native.HideFromSwitcher(new WindowInteropHelper(usageWindow).Handle);
+                };
                 usageWindow.Closed += delegate
                 {
                     usageWindow = null;
@@ -434,6 +420,7 @@ namespace GrokUsageWidget
             usageDetails.Text = "Checking Grok usage...";
             usageWindow.Show();
             usageWindow.Activate();
+            Native.HideFromSwitcher(new WindowInteropHelper(usageWindow).Handle);
             await Refresh();
         }
 
@@ -541,7 +528,6 @@ namespace GrokUsageWidget
 
             compact = on;
             moving = false;
-            compactPressing = false;
             content.ReleaseMouseCapture();
             fullView.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
             compactView.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
@@ -552,9 +538,42 @@ namespace GrokUsageWidget
             Frame target = default(Frame);
             target.W = (int)Math.Round(size.Width * deviceScale);
             target.H = (int)Math.Round(size.Height * deviceScale);
-            target.X = frame.X + (frame.W - target.W) / 2;
-            target.Y = frame.Y + (frame.H - target.H) / 2;
-            Place(target);
+            Place(AnchorFrame(frame, target));
+        }
+
+        private Frame AnchorFrame(Frame from, Frame target)
+        {
+            System.Drawing.Rectangle area = WinForms.Screen.FromRectangle(
+                new System.Drawing.Rectangle(from.X, from.Y, Math.Max(1, from.W), Math.Max(1, from.H))).WorkingArea;
+            int midX = area.Left + area.Width / 2;
+            int midY = area.Top + area.Height / 2;
+            int centerX = from.X + from.W / 2;
+            int centerY = from.Y + from.H / 2;
+            if (centerX > midX)
+            {
+                target.X = from.X + from.W - target.W;
+            }
+            else if (centerX < midX)
+            {
+                target.X = from.X;
+            }
+            else
+            {
+                target.X = from.X + (from.W - target.W) / 2;
+            }
+            if (centerY > midY)
+            {
+                target.Y = from.Y + from.H - target.H;
+            }
+            else if (centerY < midY)
+            {
+                target.Y = from.Y;
+            }
+            else
+            {
+                target.Y = from.Y + (from.H - target.H) / 2;
+            }
+            return target;
         }
 
         private void LockAspect(ref Native.RECT rect, int edge)
@@ -636,6 +655,10 @@ namespace GrokUsageWidget
 
         private IntPtr WindowMessage(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
+            if (message == 24 || message == 125)
+            {
+                Native.HideFromSwitcher(hwnd);
+            }
             if (message == Native.ShowWidgetMessage)
             {
                 Dispatcher.BeginInvoke(new Action(ShowWidget));
