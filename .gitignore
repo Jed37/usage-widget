@@ -1,0 +1,7 @@
+node_modules/
+dist/
+**/obj/
+*.pdb
+*.user
+.vs/
+*.widget.tmp

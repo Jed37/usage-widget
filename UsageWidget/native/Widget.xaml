@@ -1,0 +1,127 @@
+<Border xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Background="#E614161D" CornerRadius="14" BorderThickness="0">
+  <Grid Background="Transparent">
+  <Grid.Resources>
+    <Style TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Segoe UI"/>
+      <Setter Property="FontSize" Value="10"/>
+      <Setter Property="Foreground" Value="#BEC6D5"/>
+    </Style>
+    <Style TargetType="Button">
+      <Setter Property="Foreground" Value="#C4CBD7"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Surface" Background="{TemplateBinding Background}" CornerRadius="3">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#24FFFFFF"/></Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="Background" Value="#24FFFFFF"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
+              <MultiTrigger>
+                <MultiTrigger.Conditions><Condition Property="IsMouseOver" Value="True"/><Condition Property="Tag" Value="Close"/></MultiTrigger.Conditions>
+                <Setter TargetName="Surface" Property="Background" Value="#D22032"/>
+              </MultiTrigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style TargetType="ProgressBar">
+      <Setter Property="Height" Value="3"/>
+      <Setter Property="Background" Value="#66353A44"/>
+      <Setter Property="Foreground" Value="#94A7CA"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ProgressBar">
+            <Grid x:Name="PART_Track" Background="{TemplateBinding Background}">
+              <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="1"/>
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Grid.Resources>
+  <Grid x:Name="FullView">
+
+  <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/><RowDefinition Height="22"/></Grid.RowDefinitions>
+  <Grid Grid.Row="0" Margin="6,0,0,0">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+      <TextBlock FontWeight="SemiBold" FontSize="11" Foreground="#E2E7EF"><Run Text="Codex "/><Run x:Name="Plan" FontWeight="Normal" FontSize="9" Foreground="#9CA7B8"/></TextBlock>
+    </StackPanel>
+    <StackPanel Grid.Column="1" Orientation="Horizontal">
+      <Button x:Name="Collapse" Width="26" Height="28" AutomationProperties.Name="Collapse">
+        <Path Width="11" Height="11" Stretch="Uniform" Stroke="#C4CBD7" StrokeThickness="1.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+              Data="M4,14 L12,6 L20,14"/>
+      </Button>
+      <Button x:Name="Pin" Width="26" Height="28" AutomationProperties.Name="Always on top">
+        <Path x:Name="PinShape" Width="11" Height="11" Stretch="Uniform" Stroke="#DAE2F1" StrokeThickness="1.0" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+              Data="M16,9 L16,4 17,3 7,3 8,4 8,9 5,12 5,14 19,14 19,12 16,9 M12,14 L12,21"/>
+      </Button>
+      <Button x:Name="Minimize" Width="26" Height="28" AutomationProperties.Name="Minimize">
+        <Path Width="10" Height="1" Stretch="Fill" Stroke="#C4CBD7" StrokeThickness="1.3" Data="M0,0 L12,0"/>
+      </Button>
+      <Button x:Name="Close" Tag="Close" Width="26" Height="28" AutomationProperties.Name="Close">
+        <Path Width="9" Height="9" Stretch="Fill" Stroke="#C4CBD7" StrokeThickness="1.3" Data="M0,0 L11,11 M11,0 L0,11"/>
+      </Button>
+    </StackPanel>
+  </Grid>
+
+  <Grid Grid.Row="1" Margin="6,1,6,1">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <StackPanel Grid.Column="0">
+      <TextBlock Text="5-hour quota"/>
+      <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+        <TextBlock x:Name="PrimaryValue" Text="--" FontSize="22" FontWeight="SemiBold" Foreground="#F5F7FC"/>
+        <TextBlock Text="remaining" Margin="4,10,0,0" FontSize="9"/>
+      </StackPanel>
+      <ProgressBar x:Name="PrimaryBar" Minimum="0" Maximum="100" Margin="0,3,0,0" AutomationProperties.Name="5-hour quota remaining"/>
+      <TextBlock x:Name="PrimaryReset" Text="Reset --" FontSize="9" Margin="0,4,0,0"/>
+    </StackPanel>
+    <StackPanel Grid.Column="2">
+      <TextBlock Text="Weekly quota"/>
+      <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+        <TextBlock x:Name="WeeklyValue" Text="--" FontSize="22" FontWeight="SemiBold" Foreground="#F5F7FC"/>
+        <TextBlock Text="remaining" Margin="4,10,0,0" FontSize="9"/>
+      </StackPanel>
+      <ProgressBar x:Name="WeeklyBar" Minimum="0" Maximum="100" Margin="0,3,0,0" AutomationProperties.Name="Weekly quota remaining"/>
+      <TextBlock x:Name="WeeklyReset" Text="Reset --" FontSize="9" Margin="0,4,0,0"/>
+    </StackPanel>
+  </Grid>
+
+  <Grid Grid.Row="2" Margin="6,0,4,0">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <TextBlock x:Name="Status" Text="Updating..." FontSize="9" Foreground="#9CA7B8" VerticalAlignment="Center"/>
+    <Button x:Name="UsageCheck" Grid.Column="1" Width="44" Height="20" Margin="0,0,3,0" AutomationProperties.Name="Check usage">
+      <TextBlock Text="Usage" FontSize="9"/>
+    </Button>
+    <Button x:Name="Refresh" Grid.Column="2" Padding="3,0" Width="58" Height="20" AutomationProperties.Name="Refresh">
+      <StackPanel Orientation="Horizontal">
+        <Path Width="9" Height="9" Margin="0,0,4,0" Stretch="Uniform" Stroke="#C4CBD7" StrokeThickness="1.1" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+              Data="M3,12 A9,9 0 0 1 12,3 C14.5,3 16.8,4 18.74,5.74 L21,8 M21,3 L21,8 16,8 M21,12 A9,9 0 0 1 12,21 C9.5,21 7.2,20 5.26,18.26 L3,16 M8,16 L3,16 3,21"/>
+        <TextBlock Text="Refresh" FontSize="9"/>
+      </StackPanel>
+    </Button>
+  </Grid>
+  </Grid>
+  <Grid x:Name="CompactView" Visibility="Collapsed" Margin="7" ToolTip="Click to expand">
+    <StackPanel VerticalAlignment="Center">
+      <Viewbox Height="36" Stretch="Uniform" StretchDirection="DownOnly">
+        <TextBlock x:Name="CompactValue" Text="--" FontSize="26" FontWeight="SemiBold" Foreground="#F5F7FC" TextAlignment="Center"/>
+      </Viewbox>
+      <Viewbox Height="16" Margin="0,2,0,0" Stretch="Uniform" StretchDirection="DownOnly">
+        <TextBlock x:Name="CompactReset" Text="Reset --" FontSize="10" Foreground="#9CA7B8" TextAlignment="Center"/>
+      </Viewbox>
+    </StackPanel>
+  </Grid>
+  </Grid>
+</Border>

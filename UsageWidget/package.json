@@ -1,0 +1,12 @@
+{
+  "name": "usage-widget",
+  "version": "0.4.1",
+  "private": true,
+  "description": "Small native Windows 11 Codex quota widget",
+  "scripts": {
+    "start": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File native/start.ps1",
+    "build": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File native/build.ps1",
+    "dist": "npm run build",
+    "test": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File native/verify-all.ps1"
+  }
+}
